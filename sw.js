@@ -1,7 +1,11 @@
-self.addEventListener('install', (e) => {
+// Install and Activate only
+self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-self.addEventListener('fetch', (e) => {
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+self.addEventListener('activate', (event) => {
+    event.waitUntil(clients.claim());
 });
+
+// REMOVED THE FETCH LISTENER ENTIRELY
+// This stops the site from looping and freezing.

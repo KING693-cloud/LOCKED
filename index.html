@@ -55,10 +55,9 @@ body {
 .admin-btn {
     padding:18px; border-radius:12px; border:1px solid rgba(255,255,255,0.2);
     text-decoration:none; color:white; background:rgba(0,0,0,0.4); position:relative; font-weight:bold;
-    display: block; /* Ensures positioning works */
+    display: block;
 }
 
-/* MARKED BADGE STYLE */
 .badge {
     position: absolute;
     top: -10px;
@@ -69,7 +68,7 @@ body {
     font-weight: bold;
     padding: 4px 8px;
     border-radius: 50%;
-    display: none; /* Hidden by default */
+    display: none;
     box-shadow: 0 0 10px red;
 }
 
@@ -81,7 +80,6 @@ body {
 @keyframes pulse { 0% {transform:scale(1); opacity:0.6;} 50% {transform:scale(1.3); opacity:1;} }
 
 .box { margin-top:25px; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; text-align:left; }
-.install { margin-top:15px; background:gold; color:black; font-weight:bold; }
 footer { margin-top:30px; font-size:11px; opacity:0.5; }
 </style>
 </head>
@@ -109,8 +107,6 @@ footer { margin-top:30px; font-size:11px; opacity:0.5; }
             6. LIVE CHAT
             <span id="chatBadge" class="badge">0</span>
         </a>
-
-        <button id="installBtn" class="admin-btn install">ADD TO HOME SCREEN</button>
     </div>
 
     <div class="box">
@@ -135,44 +131,33 @@ const app = initializeApp({
 
 const db = getFirestore(app);
 const badge = document.getElementById("chatBadge");
-const installBtn = document.getElementById("installBtn");
 
-/* PWA INSTALLATION */
+/* PWA REGISTRATION */
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW failed', err));
+    navigator.serviceWorker.register('sw.js');
 }
 
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => { 
-    e.preventDefault();
-    deferredPrompt = e; 
-});
+/* LOGIN LOGIC */
+if (localStorage.getItem("admin_session_active") === "true") {
+    document.getElementById("login-overlay").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+}
 
-/* HIDE BUTTON WHEN INSTALLED */
-window.addEventListener('appinstalled', () => {
-    installBtn.style.display = 'none';
-});
-
-installBtn.onclick = () => { 
-    if(deferredPrompt) deferredPrompt.prompt(); 
+document.getElementById("pin-input").oninput = (e) => {
+    if(e.target.value === "2026") {
+        localStorage.setItem("admin_session_active", "true");
+        document.getElementById("login-overlay").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+    }
 };
 
-/* LOGIN */
-if (localStorage.getItem("admin_session_active") !== "true") {
-    window.location.replace("index.html");
-}
-document.getElementById("login-overlay").style.display = "none";
-document.getElementById("dashboard").style.display = "block";
-
-/* REAL-TIME BADGE LOGIC: Counts new Users with new messages */
+/* REAL-TIME BADGE LOGIC */
 onSnapshot(collection(db, "chats"), (snap) => {
     let unreadUsers = 0;
     const lastRead = localStorage.getItem("adminLastRead") || 0;
 
     snap.forEach(doc => {
         const data = doc.data();
-        // Check if the chat has a message from a user newer than lastRead
-        // Logic: Only count if the last sender was the customer
         if (data.lastSender === "customer" && data.lastTime > lastRead) {
             unreadUsers++;
         }
@@ -186,7 +171,6 @@ onSnapshot(collection(db, "chats"), (snap) => {
     }
 });
 
-/* Clear badge when tapped */
 document.getElementById("chatBtn").onclick = () => {
     localStorage.setItem("adminLastRead", Date.now());
     badge.style.display = "none";
